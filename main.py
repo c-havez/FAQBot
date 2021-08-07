@@ -6,36 +6,63 @@ from replit import db
 
 client = discord.Client()
 
-# def FAQ(question):
-#   QinDB = find_question(question)
-#   if QinDB == True:
-#     AinDB = find_answer(question)
-#   else:
-#     update_questions(question, answer)
+# for i in range(len(db["questions"])):
+#   del db["questions"][i]
 
-# def find_question(question):
-#   for i in questions:
-#     if question == i:
-#       return True
-#   return False
+# for i in range(len(db["answers"])):
+#   del db["answers"][i]
+# db["questions"] = []
+# db["answers"] = []
 
-# def update_questions():
-#   yes = "y"
-#   #if "questions" in db.key():
-#     #questions = db["questions"]
-#     #questions.append(question_message)
+# print (db["questions"])
 
-# def find_answer(question):
+def FAQ(question):
+  message = "We currently have no answer to that question"
+  index = find_question(question)
+  print(db["questions"], db["answers"])
+  if index != -1 and len(db["answers"]) > index:
+    answer = db["answers"][index]
+    if answer != None:
+      message = answer
+  else:
+     add_question(question)
+     add_answer(None)
+  return message
 
+def find_question(question):
+   for i in range (len(db["questions"])):
+     if question == db["questions"][i]:
+       print(i)
+       return i
+   return -1
 
-#def update_question(question):
-  # if "question" in db.keys():
+def add_question(question):
+  if "questions" in db.keys():
+    questions = db["questions"]
+    questions.append(question)
+    print(questions)
+    db["questions"] = questions
+  else:
+    db["questions"] = [] 
 
+def add_answer(answer):
+  if "answers" in db.keys():
+    answers = db["answers"]
+    answers.append(answer)
+    db["answers"] = answers
+  else:
+    db["answers"] = [] 
 
+def modify_question(question):
+  yes = 1
+
+def modify_answer(answer):
+  yes = 1
 
 @client.event
 async def on_ready():
   print('We have logged in as user {0.user}'.format(client))
+  await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "for ?FAQ"))
 
 @client.event
 async def on_message(message):
@@ -44,8 +71,8 @@ async def on_message(message):
   
   if message.content.startswith('?FAQ'):
     question = message.content[4:]
-    await message.channel.send(question)
-
+    print(FAQ(question))
+    await message.channel.send(FAQ(question))
 
 #keep_alive()
 client.run(os.getenv('TOKEN'))
