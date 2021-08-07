@@ -42,11 +42,8 @@ async def on_message(message):
   if message.author == client.user:
     return
   
-  if message.content.startswith('?FAQQ'):
+  if message.content.startswith('?FAQ'):
     question = message.content[4:]
-    inDB = get_question(question)
-    if inDB == True:
-      answer
     await message.channel.send(question)
 
 
