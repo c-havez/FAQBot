@@ -1,18 +1,19 @@
 import discord
 import os
-import requests
+#import requests
 from replit import db
 from keep_alive import keep_alive
+from difflib import SequenceMatcher
 
 client = discord.Client()
 
-numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+numbers = '0123456789'
+punctuation = ',\'\".!?`:;()@#$%^&*[]{}|\\/<>~_-+='
 
 
 def FAQ(question):
     message = "We currently have no answer to that question."
     index = find_question(question)
-    print(db["questions"], db["answers"])
     if index != -1 and len(db["answers"]) > index:
         answer = db["answers"][index]
         if answer != None:
@@ -27,17 +28,49 @@ def FAQ(question):
 
 def find_question(question):
     for i in range(len(db["questions"])):
-        if question == db["questions"][i]:
-            print(i)
+        question = remove_punctuation(question)
+        question = remove_extra_spaces(question)
+
+        DBquestion = db["questions"][i]
+        DBquestion = remove_punctuation(DBquestion)
+        DBquestion = remove_extra_spaces(DBquestion)
+
+        if question.lower() == DBquestion.lower():
             return i
     return -1
+
+
+def remove_punctuation(string):
+    newStr = ""
+    present = False
+    for l in range(len(string)):
+        present = False
+        for i in punctuation:
+            if string[l] == i:
+                present = True
+        if present == False:
+            newStr += string[l]
+    return newStr
+
+
+def remove_extra_spaces(string):
+    newStr = ""
+    count = 0
+    for i in range(len(string)):
+        if string[i] == ' ':
+            count += 1
+            if count < 2:
+                newStr += string[i]
+        else:
+            newStr += string[i]
+            count = 0
+    return newStr
 
 
 def add_question(question):
     if "questions" in db.keys():
         questions = db["questions"]
         questions.append(question)
-        print(questions)
         db["questions"] = questions
     else:
         db["questions"] = []
@@ -62,7 +95,6 @@ def extract_digits(message):
     digits = []
     done = False
     while done == False:
-        print(i)
         done = True
         for num in numbers:
             if message[i] == num:
@@ -107,14 +139,36 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('?R'):
+    if message.content.startswith('?Reset'):
         db["questions"] = []
         db["answers"] = []
         await message.channel.send("The database has been reset")
 
+    if message.content.startswith("?DeleteIndex"):
+        text = message.content[13:] + " "
+        index = get_ID(text)
+        if index < len(db["questions"]):
+            db["questions"].pop(index)
+            db["answers"].pop(index)
+            await message.channel.send("Index " + str(index) + " deleted.")
+        else:
+            await message.channel.send(
+                "The entry at the index you provided does not exist")
+
+    if message.content.startswith("?All"):
+        if len(db["questions"]) == 0:
+            await message.channel.send("The database is empty")
+        else:
+            for i in range(len(db['questions'])):
+                if db["answers"][i] == None:
+                    answer = "N/A"
+                else:
+                    answer = db["answers"][i]
+                await message.channel.send(
+                    str(i + 1) + ". " + db['questions'][i] + ":\n" + answer)
+
     if message.content.startswith('?FAQQ'):
         question = message.content[6:]
-        print(FAQ(question))
         await message.channel.send(FAQ(question))
 
     if message.content.startswith('?FAQA'):
@@ -123,6 +177,11 @@ async def on_message(message):
         answer = extract_answer(text)
         db["answers"][index] = answer
         await message.channel.send("The answer has been updated")
+
+    if message.content.startswith('?Help'):
+        await message.channel.send(
+            "Commands and guides can be found on the website:")
+        await message.channel.send("Website")
 
 
 keep_alive()
