@@ -2,77 +2,128 @@ import discord
 import os
 import requests
 from replit import db
-#from keep_alive import keep_alive
+from keep_alive import keep_alive
 
 client = discord.Client()
 
-# for i in range(len(db["questions"])):
-#   del db["questions"][i]
+numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-# for i in range(len(db["answers"])):
-#   del db["answers"][i]
-# db["questions"] = []
-# db["answers"] = []
-
-# print (db["questions"])
 
 def FAQ(question):
-  message = "We currently have no answer to that question"
-  index = find_question(question)
-  print(db["questions"], db["answers"])
-  if index != -1 and len(db["answers"]) > index:
-    answer = db["answers"][index]
-    if answer != None:
-      message = answer
-  else:
-     add_question(question)
-     add_answer(None)
-  return message
+    message = "We currently have no answer to that question."
+    index = find_question(question)
+    print(db["questions"], db["answers"])
+    if index != -1 and len(db["answers"]) > index:
+        answer = db["answers"][index]
+        if answer != None:
+            return answer
+    else:
+        add_question(question)
+        add_answer(None)
+        index = len(db["questions"]) - 1
+    message += " Here is your question's ID: " + str(index)
+    return message
+
 
 def find_question(question):
-   for i in range (len(db["questions"])):
-     if question == db["questions"][i]:
-       print(i)
-       return i
-   return -1
+    for i in range(len(db["questions"])):
+        if question == db["questions"][i]:
+            print(i)
+            return i
+    return -1
+
 
 def add_question(question):
-  if "questions" in db.keys():
-    questions = db["questions"]
-    questions.append(question)
-    print(questions)
-    db["questions"] = questions
-  else:
-    db["questions"] = [] 
+    if "questions" in db.keys():
+        questions = db["questions"]
+        questions.append(question)
+        print(questions)
+        db["questions"] = questions
+    else:
+        db["questions"] = []
+
 
 def add_answer(answer):
-  if "answers" in db.keys():
-    answers = db["answers"]
-    answers.append(answer)
-    db["answers"] = answers
-  else:
-    db["answers"] = [] 
+    if "answers" in db.keys():
+        answers = db["answers"]
+        answers.append(answer)
+        db["answers"] = answers
+    else:
+        db["answers"] = []
 
-def modify_question(question):
-  yes = 1
 
-def modify_answer(answer):
-  yes = 1
+def get_ID(message):
+    digits = extract_digits(message)
+    return calculate_ID(digits)
+
+
+def extract_digits(message):
+    i = 0
+    digits = []
+    done = False
+    while done == False:
+        print(i)
+        done = True
+        for num in numbers:
+            if message[i] == num:
+                done = False
+                digits.append(int(num))
+        i += 1
+    return digits
+
+
+def calculate_ID(digits):
+    ID = 0
+    for l in range(len(digits)):
+        num = digits[l]
+        power = len(digits) - l - 1
+        position = 10**power
+        ID += num * position
+    return ID
+
+
+def extract_answer(message):
+    i = 0
+    done = False
+    while done == False:
+        done = True
+        for num in numbers:
+            if message[i] == num:
+                done = False
+        i += 1
+    return message[i:]
+
 
 @client.event
 async def on_ready():
-  print('We have logged in as user {0.user}'.format(client))
-  await client.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = "for ?FAQ"))
+    print('We have logged in as user {0.user}'.format(client))
+    await client.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.watching, name="for ?FAQ"))
+
 
 @client.event
 async def on_message(message):
-  if message.author == client.user:
-    return
-  
-  if message.content.startswith('?FAQ'):
-    question = message.content[4:]
-    print(FAQ(question))
-    await message.channel.send(FAQ(question))
 
-#keep_alive()
+    if message.author == client.user:
+        return
+
+    if message.content.startswith('?R'):
+        db["questions"] = []
+        db["answers"] = []
+        await message.channel.send("The database has been reset")
+
+    if message.content.startswith('?FAQQ'):
+        question = message.content[6:]
+        print(FAQ(question))
+        await message.channel.send(FAQ(question))
+
+    if message.content.startswith('?FAQA'):
+        text = message.content[6:]
+        index = get_ID(text)
+        answer = extract_answer(text)
+        db["answers"][index] = answer
+        await message.channel.send("The answer has been updated")
+
+
+keep_alive()
 client.run(os.getenv('TOKEN'))
