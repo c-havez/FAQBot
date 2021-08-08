@@ -64,7 +64,6 @@ def find_greatest_similarity(similarities):
     pos = 0
     largest = similarities[0]
     for i in range(len(similarities)):
-        print(i)
         if largest < similarities[i]:
             largest = similarities[i]
             pos = i
@@ -85,10 +84,9 @@ def find_question(question):
 
 def find_similar_questions(question):
     similarities = []
-    print(db["questions"], db["answers"])
     for q in db["questions"]:
-        question = cleanup_characters(question)
-        DBquestion = cleanup_characters(q)
+        question = cleanup_characters(question).lower()
+        DBquestion = cleanup_characters(q).lower()
         s1 = SequenceMatcher(None, question, DBquestion).ratio()
         s2 = SequenceMatcher(None, DBquestion, question).ratio()
         if s1 > s2:
