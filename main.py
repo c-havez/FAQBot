@@ -11,6 +11,8 @@ numbers = '0123456789'
 punctuation = ',\'\".!?`:;()@#$%^&*[]{}|\\/<>~_-+='
 
 
+
+
 def FAQ(question):
     message = "We currently have no answer to that question."
     index = find_question(question)
@@ -28,17 +30,37 @@ def FAQ(question):
 
 def find_question(question):
     for i in range(len(db["questions"])):
-        question = remove_punctuation(question)
-        question = remove_extra_spaces(question)
+        question = cleanup_characters(question)
 
         DBquestion = db["questions"][i]
-        DBquestion = remove_punctuation(DBquestion)
-        DBquestion = remove_extra_spaces(DBquestion)
+        DBquestion = cleanup_characters(DBquestion)
 
         if question.lower() == DBquestion.lower():
             return i
     return -1
 
+def find_similar_question(question):
+  similarities = []
+  for q in db["questions"]:
+    question = cleanup_characters(question)
+    DBquestion = cleanup_characters(q)
+    s1 = SequenceMatcher(None, question, DBquestion).ratio()
+    s2 = SequenceMatcher(None, DBquestion, question).ratio()
+    if s1>s2:
+      s = s1
+    else:
+      s = s2
+    similarities.append(s)
+  pos = 0
+  largest = similarities[0]
+  for i in range(len(similarities)):
+    if largest<similarities[i]:
+      largest = similarities[i]
+      pos = i
+  return largest, pos
+
+def cleanup_characters(string):
+  return remove_extra_spaces(remove_punctuation(string))
 
 def remove_punctuation(string):
     newStr = ""
@@ -146,11 +168,11 @@ async def on_message(message):
 
     if message.content.startswith("?DeleteIndex"):
         text = message.content[13:] + " "
-        index = get_ID(text)
+        index = get_ID(text) - 1
         if index < len(db["questions"]):
             db["questions"].pop(index)
             db["answers"].pop(index)
-            await message.channel.send("Index " + str(index) + " deleted.")
+            await message.channel.send("Index " + str(index + 1) + " deleted.")
         else:
             await message.channel.send(
                 "The entry at the index you provided does not exist")
@@ -165,7 +187,7 @@ async def on_message(message):
                 else:
                     answer = db["answers"][i]
                 await message.channel.send(
-                    str(i + 1) + ". " + db['questions'][i] + ":\n" + answer)
+                    str(i+1) + ". " + db['questions'][i] + ":\n" + answer)
 
     if message.content.startswith('?FAQQ'):
         question = message.content[6:]
@@ -181,7 +203,17 @@ async def on_message(message):
     if message.content.startswith('?Help'):
         await message.channel.send(
             "Commands and guides can be found on the website:")
-        await message.channel.send("Website")
+        await message.channel.send("https://aariv428.wixsite.com/faqbot/help")
+
+    if message.content.startswith('?S'):
+      s1 = "What time does the hackathon start at"
+      s2 = "When does the hackathon start"
+
+      await message.channel.send(SequenceMatcher(None, s1, s2).ratio())
+      await message.channel.send(SequenceMatcher(None, s2, s1).ratio())
+
+
+
 
 
 keep_alive()
