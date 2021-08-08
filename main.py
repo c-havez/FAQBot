@@ -1,6 +1,6 @@
+#imports
 import discord
 import os
-#import requests
 from replit import db
 from keep_alive import keep_alive
 from difflib import SequenceMatcher
@@ -14,25 +14,61 @@ punctuation = ',\'\".!?`:;()@#$%^&*[]{}|\\/<>~_-+='
 def FAQ(question):
     message = "We currently have no answer to that question."
     index = find_question(question)
+
+    #if the question is already present in the database
     if index != -1 and len(db["answers"]) > index:
         answer = db["answers"][index]
+
+        #if answer is present in the database
         if answer != None:
             return answer
-    else:
-        if len(db["questions"]) > 0:
-            s, i = find_similar_question(question)
-            print(s, i)
-            if s > 0.50:
+
+    #if there are entries in the databse
+    if len(db["questions"]) > 0:
+        similar = find_similar_questions(question)
+        s = 1
+
+        #loops until an answer with enough similarity is found, or until all similar questions have been covered
+        while s >= 0.5:
+            s, i = find_greatest_similarity(similar)
+
+            #if a similar question is found
+            if s >= 0.5:
                 answer = db["answers"][i]
-                if answer != None:
-                    add_question(question)
-                    add_answer(answer)
+
+                #if the answer is non existant then reset and loop again
+                if answer == None:
+                    similar[i] = 0
+
+                #otherwise return the answer and update the database
+                else:
+                    if index == -1:
+                        add_question(question)
+                        index = len(db["questions"]) - 1
+                        add_answer(answer)
+                    else:
+                        db["answers"][index] = answer
                     return answer
+    #otherwise the answer is not present
+
+    #if the question is not in the database
+    if index == -1:
         add_question(question)
         add_answer(None)
         index = len(db["questions"]) - 1
     message += " Here is your question's ID: " + str(index)
     return message
+
+
+def find_greatest_similarity(similarities):
+    pos = 0
+    largest = similarities[0]
+    for i in range(len(similarities)):
+        print(i)
+        if largest < similarities[i]:
+            largest = similarities[i]
+            pos = i
+    return largest, pos
 
 
 def find_question(question):
@@ -47,7 +83,7 @@ def find_question(question):
     return -1
 
 
-def find_similar_question(question):
+def find_similar_questions(question):
     similarities = []
     print(db["questions"], db["answers"])
     for q in db["questions"]:
@@ -59,18 +95,14 @@ def find_similar_question(question):
             s = s1
         else:
             s = s2
-        print(s)
-        similarities.append(s)
-    pos = 0
-    largest = similarities[0]
-    for i in range(len(similarities)):
-        print(i)
-        if largest < similarities[i]:
-            largest = similarities[i]
-            pos = i
-    return largest, pos, similarities
+        if s != 1:
+            similarities.append(s)
+        else:
+            similarities.append(0)
+    return similarities
 
 
+#clean up spaces and punctuation
 def cleanup_characters(string):
     return remove_extra_spaces(remove_punctuation(string))
 
@@ -102,6 +134,7 @@ def remove_extra_spaces(string):
     return newStr
 
 
+#add question to list of questions
 def add_question(question):
     if "questions" in db.keys():
         questions = db["questions"]
@@ -111,6 +144,7 @@ def add_question(question):
         db["questions"] = []
 
 
+#add answer to list of answers
 def add_answer(answer):
     if "answers" in db.keys():
         answers = db["answers"]
@@ -120,6 +154,7 @@ def add_answer(answer):
         db["answers"] = []
 
 
+#find index
 def get_ID(message):
     digits = extract_digits(message)
     return calculate_ID(digits)
@@ -161,6 +196,7 @@ def extract_answer(message):
     return message[i:]
 
 
+#login
 @client.event
 async def on_ready():
     print('We have logged in as user {0.user}'.format(client))
@@ -168,6 +204,7 @@ async def on_ready():
         type=discord.ActivityType.watching, name="for ?FAQ"))
 
 
+#find the function being called, and send message back
 @client.event
 async def on_message(message):
 
