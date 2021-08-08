@@ -68,7 +68,7 @@ def find_similar_question(question):
         if largest < similarities[i]:
             largest = similarities[i]
             pos = i
-    return largest, pos
+    return largest, pos, similarities
 
 
 def cleanup_characters(string):
